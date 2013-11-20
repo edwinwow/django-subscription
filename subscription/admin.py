@@ -3,19 +3,13 @@ from django.contrib import admin
 from django.utils.html import conditional_escape as esc
 
 from models import Subscription, UserSubscription, Transaction
+from cartridge.shop.admin import ProductAdmin
+from mezzanine.core.admin import DisplayableAdmin, TabularDynamicInlineAdmin
+
+admin.site.register(Subscription, ProductAdmin)
 
 
-def _pricing(sub):
-    return sub.get_pricing_display()
 
-
-def _trial(sub):
-    return sub.get_trial_display()
-
-
-class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('name', _pricing, _trial)
-admin.site.register(Subscription, SubscriptionAdmin)
 
 
 def _subscription(trans):
