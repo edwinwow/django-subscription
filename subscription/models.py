@@ -28,7 +28,6 @@ _TIME_UNIT_CHOICES = (
     )
 
 class Subscription(Product):
-    description = models.TextField(blank=True)
     trial_period = models.PositiveIntegerField(null=True, blank=True)
     trial_unit = models.CharField(max_length=1, null=True, choices=_TIME_UNIT_CHOICES)
     recurrence_period = models.PositiveIntegerField(null=True, blank=True)
@@ -50,7 +49,7 @@ class Transaction(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True, editable=False)
     subscription = models.ForeignKey('subscription.Subscription',
                                      null=True, blank=True, editable=False)
-    user = models.ForeignKey(auth.User,
+    user = models.ForeignKey("auth.User",
                              null=True, blank=True, editable=False)
     ipn = models.ForeignKey(ipn.models.PayPalIPN,
                             null=True, blank=True, editable=False)
@@ -83,7 +82,7 @@ class ActiveUSManager(models.Manager):
 
 
 class UserSubscription(models.Model):
-    user = models.ForeignKey(auth.User)
+    user = models.ForeignKey("auth.User")
     subscription = models.ForeignKey(Subscription)
     expires = models.DateField(null=True, default=datetime.date.today)
     active = models.BooleanField(default=True)
