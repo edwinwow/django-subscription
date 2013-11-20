@@ -17,7 +17,7 @@ _formclass_dot = _formclass.rindex('.')
 _formclass_module = __import__(_formclass[:_formclass_dot], {}, {}, [''])
 PayPalForm = getattr(_formclass_module, _formclass[_formclass_dot + 1:])
 
-from models import Subscription, UserSubscription
+from .models import Subscription, UserSubscription
 
 get_paypal_extra_args = Signal(providing_args=['user', 'subscription', 'extra_args'])
 
@@ -91,7 +91,7 @@ def _paypal_form(subscription, user, upgrade_subscription=False, **extra_args):
     else:
         return PayPalForm(
                 initial=_paypal_form_args(
-                item_name='%s: %s' % (Site.objects.get_current().name, subscription.name),
+                item_name='%s: %s' % (Site.objects.get_current().name, subscription.product),
                 item_number=subscription.id,
                 custom=user.id,
                 amount=subscription.price))
@@ -103,16 +103,16 @@ def subscription_list(request):
         extra_context=dict(object_list=Subscription.objects.all()))
 
 
-def subscription_detail(request, object_id, payment_method="standard"):
+def subscription_detail(request, product_id, payment_method="standard"):
 
     FREE_SUBSCRIPTION_URL_NAME = getattr(settings, 'FREE_SUBSCRIPTION_URL_NAME', None)
     if FREE_SUBSCRIPTION_URL_NAME:
         return redirect(reverse(FREE_SUBSCRIPTION_URL_NAME))
 
-    s = get_object_or_404(Subscription, id=object_id)
+    s = get_object_or_404(Subscription, product_id=product_id)
 
     try:
-        user = request.user.usersubscription_set.get(
+        user = request.user.usersubscription.objects.get(
             active=True)
     except UserSubscription.DoesNotExist:
         change_denied_reasons = None
