@@ -12,26 +12,6 @@ admin.site.register(Subscription, ProductAdmin)
 
 
 
-def _subscription(trans):
-    if trans.subscription != None:
-        return u'<a href="/admin/subscription/subscription/%d/">%s</a>' % (
-            trans.subscription.pk, esc(trans.subscription))
-_subscription.allow_tags = True
-
-
-def _user(trans):
-    if trans.user != None:
-        return u'<a href="/admin/auth/user/%d/">%s</a>' % (
-            trans.user.pk, esc(trans.user))
-_user.allow_tags = True
-
-
-def _ipn(trans):
-    if trans.ipn != None:
-        return u'<a href="/admin/ipn/paypalipn/%d/">#%s</a>' % (
-            trans.ipn.pk, trans.ipn.pk)
-_ipn.allow_tags = True
-
 
 class UserSubscriptionAdminForm(forms.ModelForm):
     class Meta:
