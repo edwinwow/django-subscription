@@ -6,26 +6,10 @@ from django.contrib import auth
 from django.utils.translation import ugettext as _, ungettext, ugettext_lazy
 
 from paypal.standard import ipn
+from cartridge.shop.models import Product
 
 import signals
 import utils
-
-
-class Transaction(models.Model):
-    timestamp = models.DateTimeField(auto_now_add=True, editable=False)
-    subscription = models.ForeignKey('subscription.Subscription',
-                                     null=True, blank=True, editable=False)
-    user = models.ForeignKey(auth.models.User,
-                             null=True, blank=True, editable=False)
-    ipn = models.ForeignKey(ipn.models.PayPalIPN,
-                            null=True, blank=True, editable=False)
-    event = models.CharField(max_length=100, editable=False)
-    amount = models.DecimalField(max_digits=64, decimal_places=2,
-                                 null=True, blank=True, editable=False)
-    comment = models.TextField(blank=True, default='')
-
-    class Meta:
-        ordering = ('-timestamp',)
 
 
 _recurrence_unit_days = {
@@ -43,11 +27,8 @@ _TIME_UNIT_CHOICES = (
     ('Y', ugettext_lazy('Year')),
     )
 
-
-class Subscription(models.Model):
-    name = models.CharField(max_length=100, unique=True, null=False)
+class Subscription(Product):
     description = models.TextField(blank=True)
-    price = models.DecimalField(max_digits=64, decimal_places=2)
     trial_period = models.PositiveIntegerField(null=True, blank=True)
     trial_unit = models.CharField(max_length=1, null=True, choices=_TIME_UNIT_CHOICES)
     recurrence_period = models.PositiveIntegerField(null=True, blank=True)
@@ -64,65 +45,23 @@ class Subscription(models.Model):
         'Y': 'years',
         }
 
+
+class Transaction(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True, editable=False)
+    subscription = models.ForeignKey('subscription.Subscription',
+                                     null=True, blank=True, editable=False)
+    user = models.ForeignKey(auth.User,
+                             null=True, blank=True, editable=False)
+    ipn = models.ForeignKey(ipn.models.PayPalIPN,
+                            null=True, blank=True, editable=False)
+    event = models.CharField(max_length=100, editable=False)
+    amount = models.DecimalField(max_digits=64, decimal_places=2,
+                                 null=True, blank=True, editable=False)
+    comment = models.TextField(blank=True, default='')
+
     class Meta:
-        ordering = ('price', '-recurrence_period')
+        ordering = ('-timestamp',)
 
-    def __unicode__(self):
-        return self.name
-
-    def price_per_day(self):
-        """Return estimate subscription price per day, as a float.
-
-        This is used to charge difference when user changes
-        subscription.  Price returned is an estimate; month length
-        used is 30.4368 days, year length is 365.2425 days (averages
-        including leap years).  One-time payments return 0.
-        """
-        if self.recurrence_unit is None:
-            return 0
-        return float(self.price) / (
-            self.recurrence_period * _recurrence_unit_days[self.recurrence_unit]
-            )
-
-    @models.permalink
-    def get_absolute_url(self):
-        return ('subscription_detail', (), dict(object_id=str(self.id)))
-
-    def get_pricing_display(self):
-        if not self.price:
-            return u'Free'
-        elif self.recurrence_period:
-            return ungettext('%(price).02f / %(unit)s',
-                             '%(price).02f / %(period)d %(unit_plural)s',
-                             self.recurrence_period) % {
-                'price': self.price,
-                'unit': self.get_recurrence_unit_display(),
-                'unit_plural': _(self._PLURAL_UNITS[self.recurrence_unit],),
-                'period': self.recurrence_period,
-                }
-        else:
-            return _('%(price).02f one-time fee') % {'price': self.price}
-
-    def get_trial_display(self):
-        if self.trial_period:
-            return ungettext('One %(unit)s',
-                             '%(period)d %(unit_plural)s',
-                             self.trial_period) % {
-                'unit': self.get_trial_unit_display().lower(),
-                'unit_plural': _(self._PLURAL_UNITS[self.trial_unit],),
-                'period': self.trial_period,
-            }
-        else:
-            return _("No trial")
-
-    def save(self, *args, **kwargs):
-        """
-        Set trial period to 0 if the trial unit is 0
-        """
-        if self.trial_unit == "0":
-            self.trial_period = 0
-
-        super(Subscription, self).save(*args, **kwargs)
 
 
 # add User.get_subscription() method
@@ -134,7 +73,7 @@ def __user_get_subscription(user):
         else:
             user._subscription_cache = None
     return user._subscription_cache
-auth.models.User.add_to_class('get_subscription', __user_get_subscription)
+auth.User.add_to_class('get_subscription', __user_get_subscription)
 
 
 class ActiveUSManager(models.Manager):
@@ -144,7 +83,7 @@ class ActiveUSManager(models.Manager):
 
 
 class UserSubscription(models.Model):
-    user = models.ForeignKey(auth.models.User)
+    user = models.ForeignKey(auth.User)
     subscription = models.ForeignKey(Subscription)
     expires = models.DateField(null=True, default=datetime.date.today)
     active = models.BooleanField(default=True)
@@ -283,8 +222,8 @@ def _ipn_usersubscription(payment):
         s = None
 
     try:
-        u = auth.models.User.objects.get(id=payment.custom)
-    except auth.models.User.DoesNotExist:
+        u = auth.User.objects.get(id=payment.custom)
+    except auth.User.DoesNotExist:
         u = None
 
     if u and s:
