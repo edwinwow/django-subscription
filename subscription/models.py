@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.contrib import auth
 from django.utils.translation import ugettext as _, ungettext, ugettext_lazy
+from django.contrib.auth.models import User
 
 from paypal.standard import ipn
 from cartridge.shop.models import Product
