@@ -1,4 +1,7 @@
-Django Subscription
+django paypal subscription integrated with cartridge
+
+
+
 ===================
 
 Django-subscription is an application for handling PayPal-based pay
