@@ -75,10 +75,10 @@ def _paypal_form(subscription, user, upgrade_subscription=False, **extra_args):
         return PayPalForm(
                 initial=_paypal_form_args(
                 cmd='_xclick-subscriptions',
-                item_name='%s: %s' % (Site.objects.get_current().name, subscription.name),
-                item_number=subscription.id,
+                item_name='%s: %s' % (Site.objects.get_current().name, subscription.product_description),
+                item_number=subscription.product_id,
                 custom=user.id,
-                a3=subscription.price,
+                a3=subscription.product_price,
                 p3=subscription.recurrence_period,
                 t3=subscription.recurrence_unit,
                 src=1,            # make payments recur
@@ -91,10 +91,10 @@ def _paypal_form(subscription, user, upgrade_subscription=False, **extra_args):
     else:
         return PayPalForm(
                 initial=_paypal_form_args(
-                item_name='%s: %s' % (Site.objects.get_current().name, subscription.product),
-                item_number=subscription.id,
+                item_name='%s: %s' % (Site.objects.get_current().name, subscription.product_description),
+                item_number=subscription.product_id,
                 custom=user.id,
-                amount=subscription.price))
+                amount=subscription.product_price))
 
 
 def subscription_list(request):
@@ -127,7 +127,7 @@ def subscription_detail(request, product_id, payment_method="standard"):
         form = _paypal_form(s, request.user, upgrade_subscription=(user is not None) and (user.subscription != s))
 
     try:
-        s_us = request.user.usersubscription_set.get(subscription=s)
+        s_us = request.user.usersubscription.obejects.all(subscription=s)
     except UserSubscription.DoesNotExist:
         s_us = None
 
@@ -135,7 +135,7 @@ def subscription_detail(request, product_id, payment_method="standard"):
     # See PROPOSALS section in providers.py
     if payment_method == "pro":
         domain = Site.objects.get_current().domain
-        item = {"amt": s.price,
+        item = {"amt": s.product_price,
                 "inv": "inventory",         # unique tracking variable paypal
                 "custom": "tracking",       # custom tracking variable for you
                 "cancelurl": 'http://%s%s' % (domain, reverse('subscription_cancel')),  # Express checkout cancel url
