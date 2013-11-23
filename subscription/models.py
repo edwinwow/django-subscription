@@ -79,16 +79,25 @@ auth.User.add_to_class('get_subscription', __user_get_subscription)
 class ActiveUSManager(models.Manager):
     """Custom Manager for UserSubscription that returns only live US objects."""
     def get_query_set(self):
-        return super(ActiveUSManager, self).get_query_set().filter(active=True)
+        return super(ActiveUSManager, self).get_query_set().filter(status='actived')
 
 
+
+_STATUS_CHOICES = (
+    ('actived', ugettext_lazy('Active')),
+    ('cancelled', ugettext_lazy('Cancel')),
+    ('suspended', ugettext_lazy('Suspend')),
+    ('reactived', ugettext_lazy('Reactive')),
+    )
+    
+    
+    
 class UserSubscription(models.Model):
     user = models.ForeignKey("auth.User")
     subscription = models.ForeignKey(Subscription)
     expires = models.DateField(null=True, default=datetime.date.today)
-    active = models.BooleanField(default=True)
-    cancelled = models.BooleanField(default=True)
-
+    status = models.CharField(null = False, choices=_STATUS_CHOICES)
+    
     objects = models.Manager()
     active_objects = ActiveUSManager()
 
